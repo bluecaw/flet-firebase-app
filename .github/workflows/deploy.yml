@@ -24,28 +24,7 @@ jobs:
 
       - name: Build Flet Web App
         run: |
-          # 1. assetsフォルダを含めてビルド実行
-          flet publish app.py --base-url "/flet-firebase-app/" --assets assets
-
-          # 2. ビルド後の dist 内に自作 SVG を上書きコピー
-          cp assets/loading.svg dist/loading.svg
-          
-          # 3. index.html 内のデフォルトローディング表示を SVG 読み込みに差し替え
-          python3 -c "
-          with open('dist/index.html', 'r', encoding='utf-8') as f:
-              html = f.read()
-
-          # デフォルトのFletアイコン等を読み込んでいる箇所を自作SVGに置換
-          import re
-          custom_img = '<div style=\"display:flex;justify-content:center;align-items:center;height:100vh;background-color:#0f172a;\"><img src=\"loading.svg\" style=\"width:100px;height:100px;\"/></div>'
-          
-          # user-select-none の要素があれば自作SVGコンテナに置き換え
-          if 'class=\"user-select-none\"' in html:
-              html = re.sub(r'<div class=\"user-select-none\".*?</div>\s*</div>', custom_img, html, flags=re.DOTALL)
-          
-          with open('dist/index.html', 'w', encoding='utf-8') as f:
-              f.write(html)
-          "
+          flet publish app.py --base-url "/flet-firebase-app/"
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3

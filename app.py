@@ -23,9 +23,8 @@ COMMON_HEADERS = {
 
 
 def main(page: ft.Page):
-    # 💡 白ベースのライトモードに統一
-    page.theme_mode = ft.ThemeMode.LIGHT
     page.title = "ユーザー管理アプリ (Firebase REST API)"
+    page.theme_mode = ft.ThemeMode.LIGHT
     page.padding = 20
 
     selected_data = {"id": None}
@@ -39,21 +38,6 @@ def main(page: ft.Page):
         height=350,
         spacing=10
     )
-
-    # 💡 フラッシュメッセージ表示用関数（互換性対応）
-    def show_flash_message(text, bg_color):
-        snack = ft.SnackBar(
-            content=ft.Text(text, color=ft.Colors.WHITE, size=16),
-            bgcolor=bg_color,
-            duration=3000,  # 3秒表示
-        )
-        # Fletのバージョンに応じた表示処理
-        try:
-            page.open(snack)
-        except AttributeError:
-            page.snack_bar = snack
-            page.snack_bar.open = True
-            page.update()
 
     def clear_form():
         selected_data["id"] = None
@@ -77,6 +61,7 @@ def main(page: ft.Page):
                     fields = doc.get("fields", {})
                     user_name = fields.get("name", {}).get("stringValue", "(名前なし)")
 
+                    # 💡 修正箇所: バージョン互換性のあるボーダー指定方式に変更
                     user_list.controls.append(
                         ft.Container(
                             content=ft.Row(
@@ -89,7 +74,7 @@ def main(page: ft.Page):
                                     ft.IconButton(
                                         icon=ft.Icons.DELETE,
                                         icon_color=ft.Colors.RED,
-                                        on_click=lambda e, u_id=doc_id, u_name=user_name: delete_data(u_id, u_name)
+                                        on_click=lambda e, u_id=doc_id: delete_data(u_id)
                                     )
                                 ]
                             ),
@@ -136,7 +121,7 @@ def main(page: ft.Page):
                     method='POST'
                 )
                 with urllib.request.urlopen(req):
-                    show_flash_message(f"『{name}』を新規登録しました！", ft.Colors.GREEN_700)
+                    result_text.value = f"『{name}』を新規登録しました！"
             else:
                 doc_id = selected_data["id"]
                 url = f"{BASE_URL}/{doc_id}?key={API_KEY}&updateMask.fieldPaths=name"
@@ -146,7 +131,7 @@ def main(page: ft.Page):
                     method='PATCH'
                 )
                 with urllib.request.urlopen(req):
-                    show_flash_message(f"データ（{name}）を更新しました！", ft.Colors.BLUE_700)
+                    result_text.value = f"データ（{name}）を更新しました！"
 
             clear_form()
             load_data()
@@ -155,7 +140,7 @@ def main(page: ft.Page):
             page.update()
 
     # 3. 削除 (DELETE)
-    def delete_data(user_id, user_name):
+    def delete_data(user_id):
         try:
             url = f"{BASE_URL}/{user_id}?key={API_KEY}"
             req = urllib.request.Request(
@@ -164,8 +149,7 @@ def main(page: ft.Page):
                 method='DELETE'
             )
             with urllib.request.urlopen(req):
-                # 削除時の赤色フラッシュメッセージ
-                show_flash_message(f"『{user_name}』を削除しました", ft.Colors.RED_600)
+                result_text.value = f"データを削除しました。"
 
             if selected_data["id"] == user_id:
                 clear_form()
