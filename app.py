@@ -31,7 +31,13 @@ def main(page: ft.Page):
 
     name_input = ft.TextField(label="氏名を入力", width=300)
     result_text = ft.Text(value="", color=ft.Colors.BLUE)
-    user_list = ft.Column()
+
+    # 💡 修正ポイント1: スクロール機能を有効にした Column（縦並びコンテナ）を作成
+    user_list = ft.Column(
+        scroll=ft.ScrollMode.AUTO,  # データ数が多くなったら自動でスクロールバーを表示
+        height=350,                 # スクロール領域の高さを固定（お好みの高さに変更可能）
+        spacing=10
+    )
 
     def clear_form():
         selected_data["id"] = None
@@ -44,7 +50,6 @@ def main(page: ft.Page):
         user_list.controls.clear()
         try:
             url = f"{BASE_URL}?key={API_KEY}"
-            # Accept-Encoding: identity を指定してRequest作成
             req = urllib.request.Request(url, headers={'Accept-Encoding': 'identity'})
             with urllib.request.urlopen(req) as res:
                 response_data = json.loads(res.read().decode('utf-8'))
@@ -56,20 +61,27 @@ def main(page: ft.Page):
                     fields = doc.get("fields", {})
                     user_name = fields.get("name", {}).get("stringValue", "(名前なし)")
 
+                    # 💡 修正ポイント2: 見やすさ向上のため Container（枠線・背景付き）で1行をカード化
                     user_list.controls.append(
-                        ft.Row(
-                            controls=[
-                                ft.Text(f"ID: {doc_id[:8]}... | {user_name}", expand=True),
-                                ft.ElevatedButton(
-                                    "編集",
-                                    on_click=lambda e, u_id=doc_id, u_name=user_name: select_user(u_id, u_name)
-                                ),
-                                ft.IconButton(
-                                    icon=ft.Icons.DELETE,
-                                    icon_color=ft.Colors.RED,
-                                    on_click=lambda e, u_id=doc_id: delete_data(u_id)
-                                )
-                            ]
+                        ft.Container(
+                            content=ft.Row(
+                                controls=[
+                                    ft.Text(f"ID: {doc_id[:8]}... | {user_name}", expand=True, size=15),
+                                    ft.ElevatedButton(
+                                        "編集",
+                                        on_click=lambda e, u_id=doc_id, u_name=user_name: select_user(u_id, u_name)
+                                    ),
+                                    ft.IconButton(
+                                        icon=ft.Icons.DELETE,
+                                        icon_color=ft.Colors.RED,
+                                        on_click=lambda e, u_id=doc_id: delete_data(u_id)
+                                    )
+                                ]
+                            ),
+                            padding=10,
+                            border=ft.border.all(1, ft.Colors.GREY_300),
+                            border_radius=8,
+                            bgcolor=ft.Colors.GREY_50
                         )
                     )
             result_text.value = ""
@@ -152,7 +164,7 @@ def main(page: ft.Page):
         result_text,
         ft.Divider(),
         ft.Text("登録済みデータ一覧", size=18, weight=ft.FontWeight.BOLD),
-        user_list
+        user_list  # スクロールエリアを配置
     )
 
     clear_form()
