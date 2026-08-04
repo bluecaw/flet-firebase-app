@@ -15,9 +15,9 @@ PROJECT_ID = "flet-user-app"
 
 BASE_URL = f"https://firestore.googleapis.com/v1/projects/{PROJECT_ID}/databases/(default)/documents/users"
 
-# Safari等での解凍エラー(incorrect header check)を防止するための共通ヘッダー
+# Safari等での解凍エラー防止共通ヘッダー
 COMMON_HEADERS = {
-    'Accept-Encoding': 'identity',  # 圧縮を無効化して生データを取得
+    'Accept-Encoding': 'identity',
     'Content-Type': 'application/json'
 }
 
@@ -32,10 +32,10 @@ def main(page: ft.Page):
     name_input = ft.TextField(label="氏名を入力", width=300)
     result_text = ft.Text(value="", color=ft.Colors.BLUE)
 
-    # 💡 修正ポイント1: スクロール機能を有効にした Column（縦並びコンテナ）を作成
+    # スクロール可能な一覧エリア
     user_list = ft.Column(
-        scroll=ft.ScrollMode.AUTO,  # データ数が多くなったら自動でスクロールバーを表示
-        height=350,                 # スクロール領域の高さを固定（お好みの高さに変更可能）
+        scroll=ft.ScrollMode.AUTO,
+        height=350,
         spacing=10
     )
 
@@ -61,7 +61,7 @@ def main(page: ft.Page):
                     fields = doc.get("fields", {})
                     user_name = fields.get("name", {}).get("stringValue", "(名前なし)")
 
-                    # 💡 修正ポイント2: 見やすさ向上のため Container（枠線・背景付き）で1行をカード化
+                    # 💡 修正箇所: バージョン互換性のあるボーダー指定方式に変更
                     user_list.controls.append(
                         ft.Container(
                             content=ft.Row(
@@ -79,7 +79,12 @@ def main(page: ft.Page):
                                 ]
                             ),
                             padding=10,
-                            border=ft.border.all(1, ft.Colors.GREY_300),
+                            border=ft.Border(
+                                top=ft.BorderSide(1, ft.Colors.GREY_300),
+                                bottom=ft.BorderSide(1, ft.Colors.GREY_300),
+                                left=ft.BorderSide(1, ft.Colors.GREY_300),
+                                right=ft.BorderSide(1, ft.Colors.GREY_300)
+                            ),
                             border_radius=8,
                             bgcolor=ft.Colors.GREY_50
                         )
@@ -164,7 +169,7 @@ def main(page: ft.Page):
         result_text,
         ft.Divider(),
         ft.Text("登録済みデータ一覧", size=18, weight=ft.FontWeight.BOLD),
-        user_list  # スクロールエリアを配置
+        user_list
     )
 
     clear_form()
