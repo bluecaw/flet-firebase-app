@@ -24,7 +24,7 @@ jobs:
 
       - name: Build Flet Web App
         run: |
-          flet publish app.py --base-url "/flet-firebase-app/"
+          flet publish app.py --base-url "/flet-firebase-app/" --template index.html
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
