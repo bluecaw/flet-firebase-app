@@ -23,6 +23,7 @@ COMMON_HEADERS = {
 
 
 def main(page: ft.Page):
+    page.bgcolor = ft.Colors.BLUE_GREY_900  # 背景色
     page.title = "ユーザー管理アプリ (Firebase REST API)"
     page.theme_mode = ft.ThemeMode.LIGHT
     page.padding = 20
@@ -61,7 +62,6 @@ def main(page: ft.Page):
                     fields = doc.get("fields", {})
                     user_name = fields.get("name", {}).get("stringValue", "(名前なし)")
 
-                    # 💡 修正箇所: バージョン互換性のあるボーダー指定方式に変更
                     user_list.controls.append(
                         ft.Container(
                             content=ft.Row(
@@ -74,7 +74,7 @@ def main(page: ft.Page):
                                     ft.IconButton(
                                         icon=ft.Icons.DELETE,
                                         icon_color=ft.Colors.RED,
-                                        on_click=lambda e, u_id=doc_id: delete_data(u_id)
+                                        on_click=lambda e, u_id=doc_id, u_name=user_name: delete_data(u_id, u_name)
                                     )
                                 ]
                             ),
@@ -121,7 +121,8 @@ def main(page: ft.Page):
                     method='POST'
                 )
                 with urllib.request.urlopen(req):
-                    result_text.value = f"『{name}』を新規登録しました！"
+                    # 新規登録のフラッシュメッセージ
+                    show_flash_message(f"『{name}』を新規登録しました！", ft.Colors.GREEN_700)
             else:
                 doc_id = selected_data["id"]
                 url = f"{BASE_URL}/{doc_id}?key={API_KEY}&updateMask.fieldPaths=name"
@@ -131,7 +132,8 @@ def main(page: ft.Page):
                     method='PATCH'
                 )
                 with urllib.request.urlopen(req):
-                    result_text.value = f"データ（{name}）を更新しました！"
+                    # 更新のフラッシュメッセージ
+                    show_flash_message(f"データ（{name}）を更新しました！", ft.Colors.BLUE_700)
 
             clear_form()
             load_data()
@@ -139,8 +141,8 @@ def main(page: ft.Page):
             result_text.value = f"保存エラー: {ex}"
             page.update()
 
-    # 3. 削除 (DELETE)
-    def delete_data(user_id):
+    # 3. 削除 (DELETE) 💡 修正ポイント
+    def delete_data(user_id, user_name):
         try:
             url = f"{BASE_URL}/{user_id}?key={API_KEY}"
             req = urllib.request.Request(
@@ -149,7 +151,8 @@ def main(page: ft.Page):
                 method='DELETE'
             )
             with urllib.request.urlopen(req):
-                result_text.value = f"データを削除しました。"
+                # 💡 削除完了のフラッシュメッセージを表示（赤色メッセージ）
+                show_flash_message(f"『{user_name}』を削除しました", ft.Colors.RED_600)
 
             if selected_data["id"] == user_id:
                 clear_form()
@@ -158,17 +161,27 @@ def main(page: ft.Page):
             result_text.value = f"削除エラー: {ex}"
             page.update()
 
+    # 💡 フラッシュメッセージ表示用ヘルパー関数
+    def show_flash_message(text, bg_color):
+        page.snack_bar = ft.SnackBar(
+            content=ft.Text(text, color=ft.Colors.WHITE, size=16),
+            bgcolor=bg_color,
+            duration=2000,  # 2秒間表示して自動消去
+        )
+        page.snack_bar.open = True
+        page.update()
+
     page.add(
-        ft.Text("ユーザー管理アプリ（Firebase REST API）", size=24, weight=ft.FontWeight.BOLD),
+        ft.Text("ユーザー管理アプリ（Firebase REST API）", size=24, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
         name_input,
         ft.Row([
             ft.ElevatedButton("保存 / 更新", on_click=save_data, icon=ft.Icons.SAVE),
             ft.OutlinedButton("新規入力に戻す", on_click=lambda e: clear_form(), icon=ft.Icons.CLEAR),
-            ft.IconButton(icon=ft.Icons.REFRESH, on_click=lambda e: load_data())
+            ft.IconButton(icon=ft.Icons.REFRESH, on_click=lambda e: load_data(), icon_color=ft.Colors.WHITE)
         ]),
         result_text,
         ft.Divider(),
-        ft.Text("登録済みデータ一覧", size=18, weight=ft.FontWeight.BOLD),
+        ft.Text("登録済みデータ一覧", size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
         user_list
     )
 
