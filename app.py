@@ -1,56 +1,47 @@
 import flet as ft
-import json
-import urllib.request
+import httpx
 
 # --- ご自身の Firebase 設定 ---
 API_KEY = "AIzaSyCoe94vJu0Srjt_yP1Nym5UMMGPt0MWngg"
 PROJECT_ID = "flet-user-app"
 
-# Firestore REST API のベースURL
 BASE_URL = f"https://firestore.googleapis.com/v1/projects/{PROJECT_ID}/databases/(default)/documents/users"
 
 
 def main(page: ft.Page):
-    page.title = "ユーザー管理アプリ (Firebase REST API版)"
+    page.title = "ユーザー管理アプリ (Firebase REST API)"
     page.theme_mode = ft.ThemeMode.LIGHT
     page.padding = 20
 
-    # 選択中のドキュメントIDを保持する辞書
     selected_data = {"id": None}
 
-    # UIパーツの定義
     name_input = ft.TextField(label="氏名を入力", width=300)
     result_text = ft.Text(value="", color=ft.Colors.BLUE)
     user_list = ft.Column()
 
-    # 1. フォームのリセット
     def clear_form():
         selected_data["id"] = None
         name_input.value = ""
         name_input.label = "氏名を入力（新規登録モード）"
         page.update()
 
-    # 2. データをFirebaseから取得して一覧表示 (GET)
-    def load_data():
+    # 1. データ読み込み (httpx 使用)
+    def load_data(e=None):
         user_list.controls.clear()
         try:
             url = f"{BASE_URL}?key={API_KEY}"
-            req = urllib.request.Request(url)
-            with urllib.request.urlopen(req) as res:
-                response_data = json.loads(res.read().decode('utf-8'))
+            # httpx を使用（Web環境でも動作）
+            with httpx.Client() as client:
+                res = client.get(url)
+                response_data = res.json()
 
-            # ドキュメント一覧が存在する場合
             if "documents" in response_data:
                 for doc in response_data["documents"]:
-                    # FirestoreのパスからIDを抽出 (例: projects/.../documents/users/DOCUMENT_ID)
                     doc_path = doc["name"]
                     doc_id = doc_path.split("/")[-1]
-
-                    # フィールドから "name" を取得
                     fields = doc.get("fields", {})
                     user_name = fields.get("name", {}).get("stringValue", "(名前なし)")
 
-                    # 1行分のUI（編集・削除ボタン付き）を生成
                     user_list.controls.append(
                         ft.Row(
                             controls=[
@@ -67,19 +58,18 @@ def main(page: ft.Page):
                             ]
                         )
                     )
+            result_text.value = "データを読み込みました。"
         except Exception as ex:
             result_text.value = f"取得エラー: {ex}"
         page.update()
 
-    # 3. 「編集」ボタンを押した時
     def select_user(user_id, user_name):
         selected_data["id"] = user_id
         name_input.value = user_name
-        name_input.label = f"ID: {user_id[:8]}... の氏名を編集（更新モード）"
-        result_text.value = f"ID: {user_id[:8]}... を選択中。"
+        name_input.label = f"ID: {user_id[:8]}... の氏名を編集"
         page.update()
 
-    # 4. 「保存 / 更新」処理 (POST / PATCH)
+    # 2. 保存 / 更新 (httpx 使用)
     def save_data(e):
         name = name_input.value.strip()
         if not name:
@@ -88,30 +78,20 @@ def main(page: ft.Page):
             return
 
         payload = {"fields": {"name": {"stringValue": name}}}
-        data = json.dumps(payload).encode('utf-8')
 
         try:
-            if selected_data["id"] is None:
-                # 新規作成 (POST)
-                url = f"{BASE_URL}?key={API_KEY}"
-                req = urllib.request.Request(
-                    url, data=data,
-                    headers={'Content-Type': 'application/json'},
-                    method='POST'
-                )
-                with urllib.request.urlopen(req):
+            with httpx.Client() as client:
+                if selected_data["id"] is None:
+                    # 新規登録
+                    url = f"{BASE_URL}?key={API_KEY}"
+                    client.post(url, json=payload)
                     result_text.value = f"『{name}』を新規登録しました！"
-            else:
-                # 更新 (PATCH)
-                doc_id = selected_data["id"]
-                url = f"{BASE_URL}/{doc_id}?key={API_KEY}&updateMask.fieldPaths=name"
-                req = urllib.request.Request(
-                    url, data=data,
-                    headers={'Content-Type': 'application/json'},
-                    method='PATCH'
-                )
-                with urllib.request.urlopen(req):
-                    result_text.value = f"データ（{name}）を更新しました！"
+                else:
+                    # 更新
+                    doc_id = selected_data["id"]
+                    url = f"{BASE_URL}/{doc_id}?key={API_KEY}&updateMask.fieldPaths=name"
+                    client.patch(url, json=payload)
+                    result_text.value = f"データを更新しました！"
 
             clear_form()
             load_data()
@@ -119,13 +99,13 @@ def main(page: ft.Page):
             result_text.value = f"保存エラー: {ex}"
             page.update()
 
-    # 5. 「削除」処理 (DELETE)
+    # 3. 削除 (httpx 使用)
     def delete_data(user_id):
         try:
             url = f"{BASE_URL}/{user_id}?key={API_KEY}"
-            req = urllib.request.Request(url, method='DELETE')
-            with urllib.request.urlopen(req):
-                result_text.value = f"データを削除しました。"
+            with httpx.Client() as client:
+                client.delete(url)
+            result_text.value = "データを削除しました。"
 
             if selected_data["id"] == user_id:
                 clear_form()
@@ -134,14 +114,14 @@ def main(page: ft.Page):
             result_text.value = f"削除エラー: {ex}"
             page.update()
 
-    # 画面の配置
+    # 画面レイアウト
     page.add(
-        ft.Text("ユーザー管理アプリ（Firebase REST API完全版）", size=24, weight=ft.FontWeight.BOLD),
+        ft.Text("ユーザー管理アプリ (Firebase REST API)", size=24, weight=ft.FontWeight.BOLD),
         name_input,
         ft.Row([
             ft.ElevatedButton("保存 / 更新", on_click=save_data, icon=ft.Icons.SAVE),
             ft.OutlinedButton("新規入力に戻す", on_click=lambda e: clear_form(), icon=ft.Icons.CLEAR),
-            ft.IconButton(icon=ft.Icons.REFRESH, on_click=lambda e: load_data())
+            ft.IconButton(icon=ft.Icons.REFRESH, on_click=load_data)
         ]),
         result_text,
         ft.Divider(),

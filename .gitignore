@@ -2,3 +2,4 @@ myvenv/
 __pycache__/
 dist/
 .flet/
+serviceAccountKey.json
