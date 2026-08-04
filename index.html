@@ -1,160 +1,75 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-  <base href="/flet-firebase-app/">
-
+  <base href="%FLET_WEB_BASE_HREF%">
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="Flet application.">
+  <meta name="description" import="A new Flet app.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ユーザー管理アプリ</title>
 
-  <!-- iOS meta tags & icons -->
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="flet-firebase-app">
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon-192.png">
-
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png" />
-
-  <title>flet-firebase-app</title>
-  <link rel="manifest" href="manifest.json">
-
-  <script>
-    var flet = {
-      pyodide: false,
-      multiView: false,
-      noCdn: false,
-      webSocketEndpoint: "/ws",
-      entrypointBaseUrl: "/",
-      assetBase: "/",
-      routeUrlStrategy: "path",
-      canvasKitBaseUrl: "/canvaskit/",
-      // Default fallback only — `patch_index.py` overrides this with the
-      // resolved per-build URL (CDN or local) at deploy time. The `.mjs`
-      // suffix is required because python-worker.js is a module worker
-      // that loads the runtime via dynamic `import()`. See client/web/python.js.
-      pyodideUrl: "/pyodide/pyodide.mjs",
-      webRenderer: "auto",
-      fontFallbackBaseUrl: "assets/fonts/", // for Noto Emoji, use Google CDN
-      appPackageUrl: "app.tar.gz"
+  <style>
+    /* 全画面の中央寄せ設定 */
+    body {
+      background-color: #0f172a; /* ダークな背景色 */
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-family: sans-serif;
+      color: #ffffff;
+      overflow: hidden;
     }
 
-    flet.flutterAppLoaded = new Promise((resolve) => {
-      flet.flutterAppResolve = resolve;
-    });
+    /* 🌪️ 嵐（渦）のアニメーションデザイン */
+    .storm-spinner {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      /* 渦巻きのようなグラデーション */
+      background: conic-gradient(from 0deg, transparent 0%, #38bdf8 50%, #818cf8 80%, #c084fc 100%);
+      /* 中央をくり抜いてリング状にする */
+      mask: radial-gradient(farthest-side, transparent calc(100% - 10px), #000 0);
+      -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 10px), #000 0);
+      animation: storm-spin 0.8s linear infinite;
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.5);
+    }
 
-    flet.flutterAppLoaded.then((flutterApp) => {
-      console.log("Flutter app loaded");
-      if (flet.multiView) {
-        console.log(flutterApp.addView({
-          hostElement: document.querySelector('#view-1'),
-          initialData: {
-            script: 'print("Hello from view 1")',
-            randomValue: Math.floor(Math.random() * 100),
-          },
-          viewConstraints: {
-            //maxWidth: Infinity,
-            maxHeight: Infinity,
-            minHeight: 300,
-            minWidth: 620
-          }
-        }));
-        console.log(flutterApp.addView({
-          hostElement: document.querySelector('#view-2'),
-          initialData: {
-            script: 'print("Hello from view 2")',
-            bar: "baz"
-          },
-          viewConstraints: {
-            minWidth: 620,
-            //maxWidth: 320,
-            //minHeight: 400,
-            maxHeight: 400,
-          }
-        }));
+    /* 回転アニメーション */
+    @keyframes storm-spin {
+      0% {
+        transform: rotate(0deg);
       }
-    });
-  </script>
+      100% {
+        transform: rotate(360deg);
+      }
+    }
 
+    .loading-text {
+      margin-top: 24px;
+      font-size: 16px;
+      letter-spacing: 2px;
+      color: #94a3b8;
+      animation: pulse 1.5s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulse {
+      from { opacity: 0.5; }
+      to { opacity: 1.0; }
+    }
+  </style>
+
+  <!-- Flet Web 必須スクリプト -->
   <script>
-flet.pyodide = true;
-flet.micropipIncludePre = false;
-flet.pythonModuleName = "app";
-flet.pyodideUrl="https://cdn.jsdelivr.net/pyodide/v314.0.3/full/pyodide.mjs";
-flet.noCdn=false;
-flet.webRenderer="canvaskit";
-flet.routeUrlStrategy="path";
-flet.entrypointBaseUrl="/flet-firebase-app/";
-flet.assetBase="/flet-firebase-app/";
-</script>
-
-  <script src="python.js"></script>
+    var flet_web_pyodide = true;
+  </script>
+  %FLET_WEB_ENTRYPOINT%
 </head>
-
 <body>
-  <div id="loading">
-    <style>
-      body {
-        inset: 0;
-        overflow: hidden;
-        margin: 0;
-        padding: 0;
-        position: fixed;
-      }
-
-      #loading {
-        align-items: center;
-        display: flex;
-        height: 100%;
-        justify-content: center;
-        width: 100%;
-      }
-
-      #loading img {
-        animation: 1s ease-in-out 0s infinite alternate breathe;
-        opacity: .66;
-        transition: opacity .4s;
-      }
-
-      #loading.main_done img {
-        opacity: 1;
-      }
-
-      #loading.init_done img {
-        animation: .33s ease-in-out 0s 1 forwards zooooom;
-        opacity: .05;
-      }
-
-      @keyframes breathe {
-        from {
-          transform: scale(0.4);
-          opacity: 1.0;
-        }
-
-        to {
-          transform: scale(0.35);
-          opacity: .7;
-        }
-      }
-
-      @keyframes zooooom {
-        from {
-          transform: scale(0.4)
-        }
-
-        to {
-          transform: scale(10)
-        }
-      }
-    </style>
-    <img src="icons/loading-animation.png" alt="Loading..." />
-  </div>
-  <script src="flutter_bootstrap.js" async></script>
-
-  <!-- <h1>View 1</h1>
-  <div id="view-1" style="display: flex; justify-content: center;"></div>
-  <h1>View 2</h1>
-  <div id="view-2"></div> -->
+  <!-- 嵐のローディング要素 -->
+  <div class="storm-spinner"></div>
+  <div class="loading-text">LOADING...</div>
 </body>
 </html>
