@@ -1,2 +1,3 @@
 flet
 httpx
+pyodide-http
