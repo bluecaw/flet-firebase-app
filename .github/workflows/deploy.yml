@@ -24,7 +24,11 @@ jobs:
 
       - name: Build Flet Web App
         run: |
-          flet publish app.py --base-url "/flet-firebase-app/" --template index.html
+          # 1. 通常通りビルドを実行 (dist フォルダが作成されます)
+          flet publish app.py --base-url "/flet-firebase-app/"
+          
+          # 2. 自作した index.html で dist/index.html を上書きします
+          cp index.html dist/index.html
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
