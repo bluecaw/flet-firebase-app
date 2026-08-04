@@ -2,10 +2,10 @@ import flet as ft
 import json
 import urllib.request
 
-# --- Web環境（GitHub Pages）でも通信できるようにするパッチ ---
+# --- Web環境（GitHub Pages / Pyodide）通信パッチ ---
 try:
     import pyodide_http
-    pyodide_http.patch_all()  # urllib等の通信をブラウザのfetchに自動変換
+    pyodide_http.patch_all()
 except ImportError:
     pass
 
@@ -15,9 +15,15 @@ PROJECT_ID = "flet-user-app"
 
 BASE_URL = f"https://firestore.googleapis.com/v1/projects/{PROJECT_ID}/databases/(default)/documents/users"
 
+# Safari等での解凍エラー(incorrect header check)を防止するための共通ヘッダー
+COMMON_HEADERS = {
+    'Accept-Encoding': 'identity',  # 圧縮を無効化して生データを取得
+    'Content-Type': 'application/json'
+}
+
 
 def main(page: ft.Page):
-    page.title = "ユーザー管理アプリ (Firebase REST API完全版)"
+    page.title = "ユーザー管理アプリ (Firebase REST API)"
     page.theme_mode = ft.ThemeMode.LIGHT
     page.padding = 20
 
@@ -33,11 +39,13 @@ def main(page: ft.Page):
         name_input.label = "氏名を入力（新規登録モード）"
         page.update()
 
+    # 1. データの読み込み (GET)
     def load_data(e=None):
         user_list.controls.clear()
         try:
             url = f"{BASE_URL}?key={API_KEY}"
-            req = urllib.request.Request(url)
+            # Accept-Encoding: identity を指定してRequest作成
+            req = urllib.request.Request(url, headers={'Accept-Encoding': 'identity'})
             with urllib.request.urlopen(req) as res:
                 response_data = json.loads(res.read().decode('utf-8'))
 
@@ -76,6 +84,7 @@ def main(page: ft.Page):
         result_text.value = f"ID: {user_id[:8]}... を選択中。"
         page.update()
 
+    # 2. 保存・更新 (POST / PATCH)
     def save_data(e):
         name = name_input.value.strip()
         if not name:
@@ -91,7 +100,7 @@ def main(page: ft.Page):
                 url = f"{BASE_URL}?key={API_KEY}"
                 req = urllib.request.Request(
                     url, data=data,
-                    headers={'Content-Type': 'application/json'},
+                    headers=COMMON_HEADERS,
                     method='POST'
                 )
                 with urllib.request.urlopen(req):
@@ -101,7 +110,7 @@ def main(page: ft.Page):
                 url = f"{BASE_URL}/{doc_id}?key={API_KEY}&updateMask.fieldPaths=name"
                 req = urllib.request.Request(
                     url, data=data,
-                    headers={'Content-Type': 'application/json'},
+                    headers=COMMON_HEADERS,
                     method='PATCH'
                 )
                 with urllib.request.urlopen(req):
@@ -113,10 +122,15 @@ def main(page: ft.Page):
             result_text.value = f"保存エラー: {ex}"
             page.update()
 
+    # 3. 削除 (DELETE)
     def delete_data(user_id):
         try:
             url = f"{BASE_URL}/{user_id}?key={API_KEY}"
-            req = urllib.request.Request(url, method='DELETE')
+            req = urllib.request.Request(
+                url,
+                headers={'Accept-Encoding': 'identity'},
+                method='DELETE'
+            )
             with urllib.request.urlopen(req):
                 result_text.value = f"データを削除しました。"
 
@@ -128,7 +142,7 @@ def main(page: ft.Page):
             page.update()
 
     page.add(
-        ft.Text("ユーザー管理アプリ（Firebase REST API完全版）", size=24, weight=ft.FontWeight.BOLD),
+        ft.Text("ユーザー管理アプリ（Firebase REST API）", size=24, weight=ft.FontWeight.BOLD),
         name_input,
         ft.Row([
             ft.ElevatedButton("保存 / 更新", on_click=save_data, icon=ft.Icons.SAVE),
