@@ -23,9 +23,9 @@ COMMON_HEADERS = {
 
 
 def main(page: ft.Page):
-    page.bgcolor = ft.Colors.BLUE_GREY_900  # 背景色
-    page.title = "ユーザー管理アプリ (Firebase REST API)"
+    # 💡 白ベースのライトモードに統一
     page.theme_mode = ft.ThemeMode.LIGHT
+    page.title = "ユーザー管理アプリ (Firebase REST API)"
     page.padding = 20
 
     selected_data = {"id": None}
@@ -39,6 +39,21 @@ def main(page: ft.Page):
         height=350,
         spacing=10
     )
+
+    # 💡 フラッシュメッセージ表示用関数（互換性対応）
+    def show_flash_message(text, bg_color):
+        snack = ft.SnackBar(
+            content=ft.Text(text, color=ft.Colors.WHITE, size=16),
+            bgcolor=bg_color,
+            duration=3000,  # 3秒表示
+        )
+        # Fletのバージョンに応じた表示処理
+        try:
+            page.open(snack)
+        except AttributeError:
+            page.snack_bar = snack
+            page.snack_bar.open = True
+            page.update()
 
     def clear_form():
         selected_data["id"] = None
@@ -121,7 +136,6 @@ def main(page: ft.Page):
                     method='POST'
                 )
                 with urllib.request.urlopen(req):
-                    # 新規登録のフラッシュメッセージ
                     show_flash_message(f"『{name}』を新規登録しました！", ft.Colors.GREEN_700)
             else:
                 doc_id = selected_data["id"]
@@ -132,7 +146,6 @@ def main(page: ft.Page):
                     method='PATCH'
                 )
                 with urllib.request.urlopen(req):
-                    # 更新のフラッシュメッセージ
                     show_flash_message(f"データ（{name}）を更新しました！", ft.Colors.BLUE_700)
 
             clear_form()
@@ -141,7 +154,7 @@ def main(page: ft.Page):
             result_text.value = f"保存エラー: {ex}"
             page.update()
 
-    # 3. 削除 (DELETE) 💡 修正ポイント
+    # 3. 削除 (DELETE)
     def delete_data(user_id, user_name):
         try:
             url = f"{BASE_URL}/{user_id}?key={API_KEY}"
@@ -151,7 +164,7 @@ def main(page: ft.Page):
                 method='DELETE'
             )
             with urllib.request.urlopen(req):
-                # 💡 削除完了のフラッシュメッセージを表示（赤色メッセージ）
+                # 削除時の赤色フラッシュメッセージ
                 show_flash_message(f"『{user_name}』を削除しました", ft.Colors.RED_600)
 
             if selected_data["id"] == user_id:
@@ -161,27 +174,17 @@ def main(page: ft.Page):
             result_text.value = f"削除エラー: {ex}"
             page.update()
 
-    # 💡 フラッシュメッセージ表示用ヘルパー関数
-    def show_flash_message(text, bg_color):
-        page.snack_bar = ft.SnackBar(
-            content=ft.Text(text, color=ft.Colors.WHITE, size=16),
-            bgcolor=bg_color,
-            duration=2000,  # 2秒間表示して自動消去
-        )
-        page.snack_bar.open = True
-        page.update()
-
     page.add(
-        ft.Text("ユーザー管理アプリ（Firebase REST API）", size=24, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
+        ft.Text("ユーザー管理アプリ（Firebase REST API）", size=24, weight=ft.FontWeight.BOLD),
         name_input,
         ft.Row([
             ft.ElevatedButton("保存 / 更新", on_click=save_data, icon=ft.Icons.SAVE),
             ft.OutlinedButton("新規入力に戻す", on_click=lambda e: clear_form(), icon=ft.Icons.CLEAR),
-            ft.IconButton(icon=ft.Icons.REFRESH, on_click=lambda e: load_data(), icon_color=ft.Colors.WHITE)
+            ft.IconButton(icon=ft.Icons.REFRESH, on_click=lambda e: load_data())
         ]),
         result_text,
         ft.Divider(),
-        ft.Text("登録済みデータ一覧", size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
+        ft.Text("登録済みデータ一覧", size=18, weight=ft.FontWeight.BOLD),
         user_list
     )
 
