@@ -24,11 +24,46 @@ jobs:
 
       - name: Build Flet Web App
         run: |
-          # 1. 通常通りビルドを実行 (dist フォルダが作成されます)
+          # 1. 通常ビルドを実行
           flet publish app.py --base-url "/flet-firebase-app/"
+
+          # 2. 生成された dist/index.html のローディングデザイン部分だけを置換
+          python3 -c "
+          with open('dist/index.html', 'r', encoding='utf-8') as f:
+              html = f.read()
+
+          # 嵐のスピナー用 CSS と HTML
+          custom_css = '''
+          <style>
+            body { background-color: #0f172a !important; }
+            .storm-spinner {
+              width: 80px; height: 80px; border-radius: 50%;
+              background: conic-gradient(from 0deg, transparent 0%, #38bdf8 50%, #818cf8 80%, #c084fc 100%);
+              mask: radial-gradient(farthest-side, transparent calc(100% - 10px), #000 0);
+              -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 10px), #000 0);
+              animation: storm-spin 0.8s linear infinite;
+              box-shadow: 0 0 20px rgba(56, 189, 248, 0.5);
+              margin: 0 auto;
+            }
+            @keyframes storm-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+            .loading-text { margin-top: 20px; font-size: 16px; color: #94a3b8; text-align: center; font-family: sans-serif; letter-spacing: 2px; }
+          </style>
+          '''
+
+          custom_loading = '<div style=\"display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;\"><div class=\"storm-spinner\"></div><div class=\"loading-text\">LOADING...</div></div>'
+
+          # </head> の直前に CSS を注入
+          html = html.replace('</head>', custom_css + '</head>')
           
-          # 2. 自作した index.html で dist/index.html を上書きします
-          cp index.html dist/index.html
+          # 既存のボディ内容（またはローディング要素）を差し替え
+          # Fletのデフォルトローディング表示を書き換える
+          if 'class=\"user-select-none\"' in html:
+              import re
+              html = re.sub(r'<div class=\"user-select-none\".*?</div>\s*</div>', custom_loading, html, flags=re.DOTALL)
+
+          with open('dist/index.html', 'w', encoding='utf-8') as f:
+              f.write(html)
+          "
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
